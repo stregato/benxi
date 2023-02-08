@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/code-to-go/safepool"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/code-to-go/safepool/security"

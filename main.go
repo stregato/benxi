@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/adrg/xdg"
+	"github.com/code-to-go/safepool"
 	"github.com/sirupsen/logrus"
 )
 
