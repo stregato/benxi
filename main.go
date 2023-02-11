@@ -5,7 +5,8 @@ import (
 	"path"
 
 	"github.com/adrg/xdg"
-	"github.com/code-to-go/safepool"
+	"github.com/code-to-go/safepool/api"
+	"github.com/code-to-go/safepool/pool"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +14,11 @@ var dbName = "safepool.db"
 
 func parseFlags() {
 	var verbose int
+	var test bool
 
 	flag.IntVar(&verbose, "v", 0, "verbose level - 0 to 2")
 	flag.StringVar(&dbName, "d", "", "location of the SQLlite DB")
+	flag.BoolVar(&test, "t", false, "in test mode some checks are disable to facilitate development")
 	flag.Parse()
 
 	switch verbose {
@@ -26,12 +29,16 @@ func parseFlags() {
 	case 2:
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+
+	if test {
+		pool.ForceCreation = true
+	}
 }
 
 func main() {
 	parseFlags()
 
 	dbPath := path.Join(xdg.ConfigHome, dbName)
-	safepool.Start(dbPath)
+	api.Start(dbPath)
 	SelectMain()
 }

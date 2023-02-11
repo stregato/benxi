@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/code-to-go/safepool/apps/registry"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/fatih/color"
@@ -14,36 +15,37 @@ func AddUser(p *pool.Pool) {
 	propmt := promptui.Prompt{
 		Label: "Enter id (or empty for global token)",
 	}
-	guestId, _ := propmt.Run()
+	id, _ := propmt.Run()
 
 	c, err := pool.GetConfig(p.Name)
 	if core.IsErr(err, "cannot read config for '%s': %v", p.Name) {
 		color.Red("invalid config")
 		return
 	}
-	t := pool.Token{
-		Config: c,
-		Host:   p.Self,
+	t := registry.Invite{
+		Config: &c,
+		Sender: p.Self,
 	}
 
-	if guestId != "" {
-		err = p.SetAccess(guestId, pool.Active)
-		if core.IsErr(err, "cannot set access for id '%s' in pool '%s': %v", guestId, p.Name) {
-			color.Red("id '%s' has some problems: %v", guestId, err)
+	if id != "" {
+		err = p.SetAccess(id, pool.Active)
+		if core.IsErr(err, "cannot set access for id '%s' in pool '%s': %v", id, p.Name) {
+			color.Red("id '%s' has some problems: %v", id, err)
 			return
 		}
+		t.RecipientIds = append(t.RecipientIds, id)
 	}
 
-	token, err := pool.EncodeToken(t, guestId)
+	token, err := registry.Encode(t)
 	if core.IsErr(err, "cannot create token: %v") {
 		color.Red("cannot create token: %v", err)
 		return
 	}
 
-	if guestId == "" {
+	if id == "" {
 		color.Green("Universal token:\n%s", token)
 	} else {
-		color.Green("Token for bather with id '%s'\n%s", guestId, token)
+		color.Green("Token for id '%s'\n%s", id, token)
 	}
 }
 

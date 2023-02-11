@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/code-to-go/safepool/apps/chat"
+	registry "github.com/code-to-go/safepool/apps/registry"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/fatih/color"
@@ -26,7 +27,7 @@ const tokenContentType = "safepool/token"
 
 func createChat(c chat.Chat) {
 
-	var name string
+	var name, subject string
 	for {
 		prompt := promptui.Prompt{
 			Label:       "Pool name (only alphanumeric and #): ",
@@ -41,6 +42,12 @@ func createChat(c chat.Chat) {
 			break
 		}
 		color.Red("Invalid name '%s'. Name can contain only alphanumeric letters and #.", name)
+
+		prompt = promptui.Prompt{
+			Label:       "Subject: ",
+			HideEntered: true,
+		}
+		subject, _ = prompt.Run()
 	}
 
 	selfId := c.Pool.Self.Id()
@@ -88,40 +95,36 @@ func createChat(c chat.Chat) {
 		}
 	}
 
-	co, err := c.Pool.CreateBranch(name, ids, c.Pool.Apps)
+	co, err := c.Pool.Sub(name, ids, c.Pool.Apps)
 	if core.IsErr(err, "cannot create branch in pool %v: %v", c.Pool) {
 		color.Red("😱 something went wrong!")
 	}
 
-	token := pool.Token{
-		Config: co,
-		Host:   c.Pool.Self,
+	i := registry.Invite{
+		Subject:      subject,
+		Sender:       c.Pool.Self,
+		Config:       &co,
+		RecipientIds: ids,
 	}
-	for _, id := range ids {
-		tk, err := pool.EncodeToken(token, id)
-		if err == nil {
-			c.SendMessage(fmt.Sprintf("%s:%s", id, tk), tokenContentType, nil)
-		}
+	tk, err := registry.Encode(i)
+	if err == nil {
+		c.SendMessage(tokenContentType, tk, nil)
 	}
 }
 
-func processToken(c chat.Chat, m chat.Message, tokens []pool.Token) []pool.Token {
-	selfId := c.Pool.Self.Id()
-	if strings.HasPrefix(m.Text, selfId) {
-		tk := m.Text[len(selfId)+1:]
-		t, err := pool.DecodeToken(c.Pool.Self, tk)
-		if err == nil {
-			tokens = append(tokens, t)
-			color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", t.Host.Nick, t.Config.Name)
-		}
+func processInvite(c chat.Chat, m chat.Message, invites []registry.Invite) []registry.Invite {
+	invite, err := registry.Decode(c.Pool.Self, m.Text)
+	if err == nil && invite.Config != nil {
+		invites = append(invites, invite)
+		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", invite.Sender.Nick, invite.Config.Name)
 	}
-	return tokens
+	return invites
 }
 
-func acceptTokens(c chat.Chat, tokens []pool.Token) {
+func acceptInvites(c chat.Chat, invites []registry.Invite) {
 	items := []string{"cancel"}
-	for _, t := range tokens {
-		items = append(items, fmt.Sprintf("%s by %s", t.Host.Nick, t.Config.Name))
+	for _, i := range invites {
+		items = append(items, fmt.Sprintf("%s by %s", i.Sender.Nick, i.Config.Name))
 	}
 
 	sel := promptui.Select{
@@ -133,9 +136,9 @@ func acceptTokens(c chat.Chat, tokens []pool.Token) {
 		return
 	}
 
-	err = pool.Define(tokens[choice-1].Config)
+	err = invites[choice-1].Join()
 	if err == nil {
-		color.Green("Congrats. You can now access to '%s'", tokens[choice-1].Config.Name)
+		color.Green("Congrats. You can now access to '%s'", invites[choice-1].Config.Name)
 	} else {
 		color.Red("Something went wrong: %v", err)
 	}
@@ -143,7 +146,7 @@ func acceptTokens(c chat.Chat, tokens []pool.Token) {
 
 func Chat(p *pool.Pool) {
 	var lastId uint64
-	var tokens []pool.Token
+	var invites []registry.Invite
 	c := chat.Get(p, "chat")
 
 	identities, err := p.Identities()
@@ -167,7 +170,7 @@ func Chat(p *pool.Pool) {
 		}
 		for _, m := range messages {
 			if m.ContentType == tokenContentType {
-				tokens = processToken(c, m, tokens)
+				invites = processInvite(c, m, invites)
 				continue
 			}
 
@@ -195,13 +198,13 @@ func Chat(p *pool.Pool) {
 		case strings.HasPrefix(t, "\\c"):
 			createChat(c)
 		case strings.HasPrefix(t, "\\a"):
-			acceptTokens(c, tokens)
+			acceptInvites(c, invites)
 		case strings.HasPrefix(t, "\\?"):
 			printChatHelp()
 		case strings.HasPrefix(t, "\\"):
 			printChatHelp()
 		default:
-			_, err := c.SendMessage(t, "text/html", nil)
+			_, err := c.SendMessage("text/html", t, nil)
 			if err != nil {
 				color.Red("cannot send message: %s")
 			}

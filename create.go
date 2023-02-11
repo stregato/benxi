@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/code-to-go/safepool/api"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/fatih/color"
@@ -57,7 +58,7 @@ func Create() {
 			continue
 		}
 
-		p, err := pool.Create(safepool.Self, c.Name, safepool.Apps)
+		p, err := pool.Create(api.Self, c.Name, api.Apps)
 		if core.IsErr(err, "cannot create pool: %v") {
 			color.Red("Cannot create pool: %v", err)
 			continue

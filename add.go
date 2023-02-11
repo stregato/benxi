@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/code-to-go/safepool"
+	"github.com/code-to-go/safepool/api"
+	"github.com/code-to-go/safepool/apps/registry"
 	"github.com/code-to-go/safepool/core"
-	"github.com/code-to-go/safepool/pool"
-	"github.com/code-to-go/safepool/security"
+
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 )
@@ -13,7 +13,7 @@ func AddExisting() {
 
 	for {
 		prompt := promptui.Prompt{
-			Label:       "Token from your host",
+			Label:       "Invite",
 			HideEntered: true,
 		}
 
@@ -22,26 +22,21 @@ func AddExisting() {
 			return
 		}
 
-		token, err := pool.DecodeToken(safepool.Self, t)
+		i, err := registry.Decode(api.Self, t)
 		if core.IsErr(err, "invalid token: %v") {
 			continue
 		}
 
-		err = security.SetIdentity(token.Host)
-		if core.IsErr(err, "cannot save identity '%s': %v", token.Host.Nick) {
+		if i.Config == nil {
+			color.Red("the invite is not for you")
 			continue
 		}
 
-		err = security.Trust(token.Host, true)
-		if core.IsErr(err, "cannot trust identity '%s': %v", token.Host.Nick) {
+		if core.IsErr(i.Join(), "cannot join the pool: %s") {
 			continue
 		}
 
-		if core.IsErr(pool.Define(token.Config), "cannot save pool in db: %s") {
-			continue
-		}
-
-		color.Green("Pool %s added. Host '%s' is trusted", token.Config.Name, token.Host.Nick)
+		color.Green("Pool %s added. Host '%s' is trusted", i.Config.Name, i.Sender.Nick)
 		return
 	}
 

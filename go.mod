@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/adrg/xdg v0.4.0
-	github.com/code-to-go/safepool v0.0.0-20230208213143-c25d4c203edc
+	github.com/code-to-go/safepool v0.0.0-20230208220139-7f2dcaefc9ac
 	github.com/fatih/color v1.13.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/sirupsen/logrus v1.9.0
