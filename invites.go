@@ -1,16 +1,14 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/code-to-go/safepool/apps/registry"
+	"github.com/code-to-go/safepool/apps/invite"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 )
 
-func AddUser(p *pool.Pool) {
+func CreateInvite(p *pool.Pool) {
 
 	propmt := promptui.Prompt{
 		Label: "Enter id (or empty for global token)",
@@ -22,7 +20,7 @@ func AddUser(p *pool.Pool) {
 		color.Red("invalid config")
 		return
 	}
-	t := registry.Invite{
+	i := invite.Invite{
 		Config: &c,
 		Sender: p.Self,
 	}
@@ -33,15 +31,16 @@ func AddUser(p *pool.Pool) {
 			color.Red("id '%s' has some problems: %v", id, err)
 			return
 		}
-		t.RecipientIds = append(t.RecipientIds, id)
+		i.RecipientIds = append(i.RecipientIds, id)
 	}
 
-	token, err := registry.Encode(t)
+	token, err := invite.Encode(i)
 	if core.IsErr(err, "cannot create token: %v") {
 		color.Red("cannot create token: %v", err)
 		return
 	}
 
+	invite.Add(p, i)
 	if id == "" {
 		color.Green("Universal token:\n%s", token)
 	} else {
@@ -49,35 +48,44 @@ func AddUser(p *pool.Pool) {
 	}
 }
 
-func Users(p *pool.Pool) {
+func Invites(p *pool.Pool) {
 
 	for {
-
-		identities, err := p.Identities()
+		identities, err := p.Users()
 		if core.IsErr(err, "cannot read identities from db: %v") {
 			color.Red("cannot list users")
 			return
 		}
 
-		items := []string{"Action: Add", "Action: Back"}
+		color.Green("Users")
 		for _, i := range identities {
-			items = append(items, fmt.Sprintf("%s %s - %s", i.Nick, i.Email, i.Id()))
+			color.Green("\t%s %s - %s", i.Nick, i.Email, i.Id())
 		}
 
+		items := []string{"Action: Invite", "Action: Sub Pool", "Action: Back"}
 		prompt := promptui.Select{
 			Label: "Choose",
 			Items: items,
 		}
 
+		color.Green("Invites")
+		invites, _ := invite.GetInvites(p, 0, false)
+		for _, i := range invites {
+			if i.Config == nil {
+				color.Green("%s has sent an invite", i.Sender.Nick)
+			} else {
+				items = append(items, "Accept invite to '%s' by '%s' ")
+			}
+		}
+
 		idx, _, _ := prompt.Run()
 		switch idx {
 		case 0:
-			AddUser(p)
-		case 1:
+			CreateInvite(p)
+		case 2:
 			return
 		default:
 		}
 
 	}
-
 }

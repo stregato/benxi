@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/code-to-go/safepool/api"
-	"github.com/code-to-go/safepool/apps/registry"
+	"github.com/code-to-go/safepool/apps/invite"
 	"github.com/code-to-go/safepool/core"
 
 	"github.com/fatih/color"
@@ -22,7 +22,7 @@ func AddExisting() {
 			return
 		}
 
-		i, err := registry.Decode(api.Self, t)
+		i, err := invite.Decode(api.Self, t)
 		if core.IsErr(err, "invalid token: %v") {
 			continue
 		}

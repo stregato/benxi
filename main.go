@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
+	"os"
 	"path"
 
 	"github.com/adrg/xdg"
 	"github.com/code-to-go/safepool/api"
+	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/sirupsen/logrus"
 )
@@ -39,6 +41,9 @@ func main() {
 	parseFlags()
 
 	dbPath := path.Join(xdg.ConfigHome, dbName)
-	api.Start(dbPath)
+	err := api.Start(dbPath)
+	if core.IsErr(err, "cannot start: %v") {
+		os.Exit(1)
+	}
 	SelectMain()
 }

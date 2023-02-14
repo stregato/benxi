@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/code-to-go/safepool/apps/chat"
-	registry "github.com/code-to-go/safepool/apps/registry"
+	"github.com/code-to-go/safepool/apps/invite"
+
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/fatih/color"
@@ -16,8 +17,8 @@ import (
 
 func printChatHelp() {
 	color.White("commands: ")
-	color.White("  '' refresh chat content")
-	color.White("  \\x exit chat")
+	color.White("  CR refresh chat content")
+	color.White("  double CR exit chat")
 	color.White("  \\c create a sub pool")
 }
 
@@ -54,7 +55,7 @@ func createChat(c chat.Chat) {
 	selected := map[string]bool{}
 	for {
 		items := []string{"Complete"}
-		identities, _ := c.Pool.Identities()
+		identities, _ := c.Pool.Users()
 		for idx, i := range identities {
 			id := i.Id()
 			if id == selfId {
@@ -100,28 +101,28 @@ func createChat(c chat.Chat) {
 		color.Red("😱 something went wrong!")
 	}
 
-	i := registry.Invite{
+	i := invite.Invite{
 		Subject:      subject,
 		Sender:       c.Pool.Self,
 		Config:       &co,
 		RecipientIds: ids,
 	}
-	tk, err := registry.Encode(i)
+	tk, err := invite.Encode(i)
 	if err == nil {
 		c.SendMessage(tokenContentType, tk, nil)
 	}
 }
 
-func processInvite(c chat.Chat, m chat.Message, invites []registry.Invite) []registry.Invite {
-	invite, err := registry.Decode(c.Pool.Self, m.Text)
-	if err == nil && invite.Config != nil {
-		invites = append(invites, invite)
-		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", invite.Sender.Nick, invite.Config.Name)
+func processInvite(c chat.Chat, m chat.Message, invites []invite.Invite) []invite.Invite {
+	i, err := invite.Decode(c.Pool.Self, m.Text)
+	if err == nil && i.Config != nil {
+		invites = append(invites, i)
+		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", i.Sender.Nick, i.Config.Name)
 	}
 	return invites
 }
 
-func acceptInvites(c chat.Chat, invites []registry.Invite) {
+func acceptInvites(c chat.Chat, invites []invite.Invite) {
 	items := []string{"cancel"}
 	for _, i := range invites {
 		items = append(items, fmt.Sprintf("%s by %s", i.Sender.Nick, i.Config.Name))
@@ -144,12 +145,15 @@ func acceptInvites(c chat.Chat, invites []registry.Invite) {
 	}
 }
 
+const kitchen2 = "Mon 3:04PM"
+
 func Chat(p *pool.Pool) {
-	var lastId uint64
-	var invites []registry.Invite
+	var after, before time.Time
+	var invites []invite.Invite
+	recents := map[uint64]bool{}
 	c := chat.Get(p, "chat")
 
-	identities, err := p.Identities()
+	identities, err := p.Users()
 	if err != nil {
 		color.Red("cannot retrieve identities for pool '%s': %v", p.Name)
 		return
@@ -160,10 +164,12 @@ func Chat(p *pool.Pool) {
 		id2nick[i.Id()] = i.Nick
 	}
 
+	lastCR := core.Now()
+	before = core.Now()
 	selfId := p.Self.Id()
 	color.Green("Enter \\? for list of commands")
 	for {
-		messages, err := c.GetMessages(lastId, math.MaxInt64, 32)
+		messages, err := c.GetMessages(after, before, 32)
 		if err != nil {
 			color.Red("cannot retrieve chat messages from pool '%s': %v", p.Name)
 			return
@@ -175,13 +181,13 @@ func Chat(p *pool.Pool) {
 			}
 
 			if m.Author == selfId {
-				color.Blue("%s: %s", id2nick[m.Author], m.Text)
+				if !recents[m.Id] {
+					color.Blue("\t%s 🕑%s: %s", id2nick[m.Author], m.Time.Format(kitchen2), m.Text)
+				}
 			} else {
-				color.Green("\t%s: %s", id2nick[m.Author], m.Text)
+				color.Green("%s 🕑%s: %s", id2nick[m.Author], m.Time.Format(kitchen2), m.Text)
 			}
-			if m.Id > lastId {
-				lastId = m.Id
-			}
+			after = m.Time
 		}
 		prompt := promptui.Prompt{
 			Label:       "> ",
@@ -193,8 +199,12 @@ func Chat(p *pool.Pool) {
 
 		switch {
 		case len(t) == 0:
-		case strings.HasPrefix(t, "\\x"):
-			return
+			if core.Since(lastCR) < time.Second {
+				return
+			} else {
+				lastCR = core.Now()
+				before = core.Now()
+			}
 		case strings.HasPrefix(t, "\\c"):
 			createChat(c)
 		case strings.HasPrefix(t, "\\a"):
@@ -204,9 +214,12 @@ func Chat(p *pool.Pool) {
 		case strings.HasPrefix(t, "\\"):
 			printChatHelp()
 		default:
-			_, err := c.SendMessage("text/html", t, nil)
+			id, err := c.SendMessage("text/html", t, nil)
 			if err != nil {
 				color.Red("cannot send message: %s")
+			} else {
+				color.Blue("%s 🕑%s: %s ", p.Self.Nick, core.Now().Format(kitchen2), t)
+				recents[id] = true
 			}
 		}
 	}
