@@ -197,7 +197,7 @@ func documentFormat(d library.Document) string {
 }
 
 func Library(p *pool.Pool) {
-	p.Sync()
+
 	l := library.Get(p, "library")
 
 	folder := ""
@@ -209,11 +209,11 @@ func Library(p *pool.Pool) {
 		}
 
 		items := []string{"🔙 Back", "⟳ Refresh", "＋ Add"}
-		for _, d := range ls.Documents {
-			items = append(items, documentFormat(d))
-		}
 		for _, s := range ls.Subfolders {
 			items = append(items, fmt.Sprintf("📁 %s", s))
+		}
+		for _, d := range ls.Documents {
+			items = append(items, documentFormat(d))
 		}
 
 		prompt := promptui.Select{
@@ -238,10 +238,10 @@ func Library(p *pool.Pool) {
 		case 2:
 			addDocument(l)
 		default:
-			if idx < len(ls.Documents)+3 {
-				actionsOnDocument(l, ls.Documents[idx-3])
+			if idx < len(ls.Subfolders)+3 {
+				folder = ls.Subfolders[idx-3]
 			} else {
-				folder = ls.Subfolders[idx-2-len(ls.Documents)]
+				actionsOnDocument(l, ls.Documents[idx-3-len(ls.Subfolders)])
 			}
 		}
 	}

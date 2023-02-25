@@ -169,7 +169,7 @@ func Chat(p *pool.Pool) {
 	selfId := p.Self.Id()
 	color.Green("Enter \\? for list of commands")
 	for {
-		messages, err := c.GetMessages(after, before, 32)
+		messages, err := c.Receive(after, before, 32)
 		if err != nil {
 			color.Red("cannot retrieve chat messages from pool '%s': %v", p.Name)
 			return

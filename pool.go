@@ -16,7 +16,7 @@ func ChooseFunction(poolName string) {
 	defer p.Close()
 
 	for {
-		items := []string{"🗨 Chat", "📚 Library", "📧 Invites", "🔙 Back"}
+		items := []string{"🗨 Chat", "📚 Library", "📧 Invites", "🗑 Leave", "🔙 Back"}
 		prompt := promptui.Select{
 			Label: "Choose App",
 			Items: items,
@@ -30,6 +30,10 @@ func ChooseFunction(poolName string) {
 			Library(p)
 		case 2:
 			Invites(p)
+		case 3:
+			if api.PoolLeave(poolName) == nil {
+				return
+			}
 		default:
 			return
 		}
