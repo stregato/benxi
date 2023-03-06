@@ -10,6 +10,7 @@ import (
 )
 
 func AddExisting() {
+	color.Green("My Public id: %s", api.Self.Id())
 
 	for {
 		prompt := promptui.Prompt{

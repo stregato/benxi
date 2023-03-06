@@ -8,12 +8,11 @@ import (
 )
 
 func ChooseFunction(poolName string) {
-	p, err := pool.Open(api.Self, poolName)
+	p, err := api.PoolGet(poolName)
 	if err != nil {
 		color.Red("cannot open pool '%s': %v", poolName, err)
 		return
 	}
-	defer p.Close()
 
 	for {
 		items := []string{"🗨 Chat", "📚 Library", "📧 Invites", "🗑 Leave", "🔙 Back"}

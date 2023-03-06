@@ -102,7 +102,7 @@ func actionsOnDocument(l library.Library, d library.Document) {
 	items := []string{"🔙 Back"}
 	var actions []action
 
-	if d.LocalPath != "" {
+	if d.LocalPath != "" && d.State != library.Deleted {
 		items = append(items, "open locally")
 		actions = append(actions, action{openLocally, nil})
 		items = append(items, "open local folder")
@@ -116,17 +116,19 @@ func actionsOnDocument(l library.Library, d library.Document) {
 	}
 
 	for _, v := range d.Versions {
-		i, _ := security.IdentityFromId(v.AuthorId)
-		switch {
-		case v.State == library.Updated:
-			items = append(items, fmt.Sprintf("receive update from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
-			actions = append(actions, action{updateLocal, &v})
-		case v.State == library.Conflict:
-			items = append(items, fmt.Sprintf("receive replacement from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
-			actions = append(actions, action{updateLocal, &v})
+		i, ok, _ := security.GetIdentity(v.AuthorId)
+		if ok {
+			switch {
+			case v.State == library.Updated:
+				items = append(items, fmt.Sprintf("receive update from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
+				actions = append(actions, action{updateLocal, &v})
+			case v.State == library.Conflict:
+				items = append(items, fmt.Sprintf("receive replacement from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
+				actions = append(actions, action{updateLocal, &v})
+			}
+			items = append(items, fmt.Sprintf("download from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
+			actions = append(actions, action{downloadTemp, &v})
 		}
-		items = append(items, fmt.Sprintf("download from %s: size %d, date %s", i.Nick, v.Size, v.ModTime.Format(time.Stamp)))
-		actions = append(actions, action{downloadTemp, &v})
 	}
 
 	label := fmt.Sprintf("Choose the action on '%s'", d.Name)
@@ -234,7 +236,6 @@ func Library(p *pool.Pool) {
 				folder = strings.TrimLeft(folder, ".")
 			}
 		case 1:
-			p.Sync()
 		case 2:
 			addDocument(l)
 		default:

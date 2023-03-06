@@ -27,8 +27,10 @@ func parseFlags() {
 	case 0:
 		logrus.SetLevel(logrus.FatalLevel)
 	case 1:
-		logrus.SetLevel(logrus.InfoLevel)
+		logrus.SetLevel(logrus.ErrorLevel)
 	case 2:
+		logrus.SetLevel(logrus.InfoLevel)
+	case 3:
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
@@ -41,7 +43,7 @@ func main() {
 	parseFlags()
 
 	dbPath := path.Join(xdg.ConfigHome, dbName)
-	err := api.Start(dbPath)
+	err := api.Start(dbPath, pool.HighBandwith)
 	if core.IsErr(err, "cannot start: %v") {
 		os.Exit(1)
 	}
