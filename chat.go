@@ -109,7 +109,7 @@ func createChat(c chat.Chat) {
 	}
 	tk, err := invite.Encode(i)
 	if err == nil {
-		c.SendMessage(tokenContentType, tk, nil)
+		c.SendMessage(tokenContentType, tk, nil, nil)
 	}
 }
 
@@ -150,6 +150,7 @@ const kitchen2 = "Mon 3:04PM"
 func Chat(p *pool.Pool) {
 	var after, before time.Time
 	var invites []invite.Invite
+	var private chat.Private
 	recents := map[uint64]bool{}
 	c := chat.Get(p, "chat")
 
@@ -160,8 +161,10 @@ func Chat(p *pool.Pool) {
 	}
 
 	id2nick := map[string]string{}
+	nick2id := map[string]string{}
 	for _, i := range identities {
 		id2nick[i.Id()] = i.Nick
+		nick2id[i.Nick] = i.Id()
 	}
 
 	lastCR := core.Now()
@@ -169,11 +172,12 @@ func Chat(p *pool.Pool) {
 	selfId := p.Self.Id()
 	color.Green("Enter \\? for list of commands")
 	for {
-		messages, err := c.Receive(after, before, 32)
+		messages, err := c.Receive(after, before, 32, private)
 		if err != nil {
 			color.Red("cannot retrieve chat messages from pool '%s': %v", p.Name)
 			return
 		}
+		private = nil
 		for _, m := range messages {
 			if m.ContentType == tokenContentType {
 				invites = processInvite(c, m, invites)
@@ -214,7 +218,29 @@ func Chat(p *pool.Pool) {
 		case strings.HasPrefix(t, "\\"):
 			printChatHelp()
 		default:
-			id, err := c.SendMessage("text/html", t, nil)
+			if t[0] == '|' {
+				var nick string
+				si := strings.Index(t, " ")
+				if si != -1 {
+					nick = t[0:si]
+					t = strings.Trim(t[si:], " ")
+				} else {
+					nick = t[1:]
+					t = ""
+				}
+				id := nick2id[nick]
+				if id == "" {
+					color.Red("unknown nick %s", nick)
+					continue
+				} else {
+					private = []string{selfId, id}
+				}
+				if t == "" {
+					continue
+				}
+			}
+
+			id, err := c.SendMessage("text/html", t, nil, private)
 			if err != nil {
 				color.Red("cannot send message: %s")
 			} else {
