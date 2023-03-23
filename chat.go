@@ -104,7 +104,8 @@ func createChat(c chat.Chat) {
 	i := invite.Invite{
 		Subject:      subject,
 		Sender:       c.Pool.Self,
-		Config:       &co,
+		Name:         co.Name,
+		Storages:     co.Public,
 		RecipientIds: ids,
 	}
 	tk, err := invite.Encode(i)
@@ -115,9 +116,9 @@ func createChat(c chat.Chat) {
 
 func processInvite(c chat.Chat, m chat.Message, invites []invite.Invite) []invite.Invite {
 	i, err := invite.Decode(c.Pool.Self, m.Text)
-	if err == nil && i.Config != nil {
+	if err == nil && i.Storages != nil {
 		invites = append(invites, i)
-		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", i.Sender.Nick, i.Config.Name)
+		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", i.Sender.Nick, i.Name)
 	}
 	return invites
 }
@@ -125,7 +126,7 @@ func processInvite(c chat.Chat, m chat.Message, invites []invite.Invite) []invit
 func acceptInvites(c chat.Chat, invites []invite.Invite) {
 	items := []string{"cancel"}
 	for _, i := range invites {
-		items = append(items, fmt.Sprintf("%s by %s", i.Sender.Nick, i.Config.Name))
+		items = append(items, fmt.Sprintf("%s by %s", i.Sender.Nick, i.Name))
 	}
 
 	sel := promptui.Select{
@@ -139,7 +140,7 @@ func acceptInvites(c chat.Chat, invites []invite.Invite) {
 
 	err = invites[choice-1].Join()
 	if err == nil {
-		color.Green("Congrats. You can now access to '%s'", invites[choice-1].Config.Name)
+		color.Green("Congrats. You can now access to '%s'", invites[choice-1].Name)
 	} else {
 		color.Red("Something went wrong: %v", err)
 	}

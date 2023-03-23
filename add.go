@@ -28,7 +28,7 @@ func AddExisting() {
 			continue
 		}
 
-		if i.Config == nil {
+		if i.Storages == nil {
 			color.Red("the invite is not for you")
 			continue
 		}
@@ -37,7 +37,7 @@ func AddExisting() {
 			continue
 		}
 
-		color.Green("Pool %s added. Host '%s' is trusted", i.Config.Name, i.Sender.Nick)
+		color.Green("Pool %s added. Host '%s' is trusted", i.Name, i.Sender.Nick)
 		return
 	}
 
