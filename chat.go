@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/code-to-go/safepool/apps/chat"
-	"github.com/code-to-go/safepool/apps/invite"
+	"github.com/code-to-go/safepool/services/chat"
+	"github.com/code-to-go/safepool/services/invite"
 
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"

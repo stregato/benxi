@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/code-to-go/safepool/apps/library"
 	"github.com/code-to-go/safepool/core"
 	"github.com/code-to-go/safepool/pool"
 	"github.com/code-to-go/safepool/security"
+	"github.com/code-to-go/safepool/services/library"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/skratchdot/open-golang/open"
