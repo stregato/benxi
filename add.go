@@ -28,7 +28,7 @@ func AddExisting() {
 			continue
 		}
 
-		if i.Storages == nil {
+		if i.Exchanges == nil {
 			color.Red("the invite is not for you")
 			continue
 		}

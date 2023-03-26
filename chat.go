@@ -105,7 +105,7 @@ func createChat(c chat.Chat) {
 		Subject:      subject,
 		Sender:       c.Pool.Self,
 		Name:         co.Name,
-		Storages:     co.Public,
+		Exchanges:    co.Public,
 		RecipientIds: ids,
 	}
 	tk, err := invite.Encode(i)
@@ -116,7 +116,7 @@ func createChat(c chat.Chat) {
 
 func processInvite(c chat.Chat, m chat.Message, invites []invite.Invite) []invite.Invite {
 	i, err := invite.Decode(c.Pool.Self, m.Text)
-	if err == nil && i.Storages != nil {
+	if err == nil && i.Exchanges != nil {
 		invites = append(invites, i)
 		color.Cyan("\t🔥 %s is inviting you to join %s; enter \\a to accept", i.Sender.Nick, i.Name)
 	}

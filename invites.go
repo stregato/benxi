@@ -50,7 +50,7 @@ func Invites(p *pool.Pool) {
 		color.Green("Invites")
 		invites, _ := invite.Receive(p, 0, false)
 		for _, i := range invites {
-			if i.Storages == nil {
+			if i.Exchanges == nil {
 				color.Green("%s has sent an invite", i.Sender.Nick)
 			} else {
 				items = append(items, "Accept invite to '%s' by '%s' ")
