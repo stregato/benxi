@@ -12,14 +12,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var dbName = "safepool.db"
+var dbName string
 
 func parseFlags() {
 	var verbose int
 	var test bool
 
 	flag.IntVar(&verbose, "v", 0, "verbose level - 0 to 2")
-	flag.StringVar(&dbName, "d", "", "location of the SQLlite DB")
+	flag.StringVar(&dbName, "d", "safepool.db", "location of the SQLlite DB")
 	flag.BoolVar(&test, "t", false, "in test mode some checks are disable to facilitate development")
 	flag.Parse()
 
@@ -43,6 +43,7 @@ func main() {
 	parseFlags()
 
 	dbPath := path.Join(xdg.ConfigHome, dbName)
+	core.Info("starting with db %s  - %s", dbPath, dbName)
 	err := api.Start(dbPath, pool.HighBandwith)
 	if core.IsErr(err, "cannot start: %v") {
 		os.Exit(1)
